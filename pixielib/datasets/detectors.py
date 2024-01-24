@@ -1,5 +1,9 @@
 import numpy as np
 import torch
+import mediapipe as mp
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
+
 '''
 For cropping body:
 1. using bbox from objection detectors
@@ -142,7 +146,7 @@ class KeypointRCNN(object):
 class FAN(object):
     def __init__(self):
         import face_alignment
-        self.model = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False)
+        self.model = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False, device='cuda', face_detector='blazeface')
 
     def run(self, image):
         '''
@@ -159,3 +163,30 @@ class FAN(object):
             bbox = [left,top, right, bottom]
             return bbox
 
+class MP(object):
+    def __init__(self):
+        base_options = python.BaseOptions(model_asset_path='/home/s-kim/tmp/PIXIE/pixielib/datasets/detector.tflite',
+                                          delegate=python.BaseOptions.Delegate.CPU)
+        options = vision.FaceDetectorOptions(base_options=base_options)
+        self.detector = vision.FaceDetector.create_from_options(options)
+
+    def run(self, image):
+        '''
+        image: 0-255, uint8, rgb, [h, w, 3]
+        return: detected box list
+        '''
+
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
+        out = self.detector.detect(mp_image)
+        bbox = out.detections[0].bounding_box
+        # start_point = bbox.origin_x, bbox.origin_y
+        # end_point = bbox.origin_x + bbox.width, bbox.origin_y + bbox.height
+
+        if out is None:
+            return [0]
+        else:
+            left = bbox.origin_x
+            right = left + bbox.height
+            top = bbox.origin_y
+            bottom = top + bbox.width
+            return [left, top, right, bottom]

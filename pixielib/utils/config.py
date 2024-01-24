@@ -47,9 +47,9 @@ cfg.model.n_exp = 50
 cfg.model.n_body_cam = 3
 cfg.model.n_head_cam = 3
 cfg.model.n_hand_cam = 3
-cfg.model.tex_type = 'BFM' # BFM, FLAME, albedoMM
+cfg.model.tex_type = 'FLAME' # BFM, FLAME, albedoMM
 cfg.model.uvtex_type = 'SMPLX' # FLAME or SMPLX
-cfg.model.use_tex = True # whether to use flame texture model
+cfg.model.use_tex = False # whether to use flame texture model
 cfg.model.flame_tex_path = '/ps/scratch/yfeng/Data/FLAME/texture/FLAME_texture.npz'
 
 # pose
