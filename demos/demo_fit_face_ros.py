@@ -21,11 +21,17 @@ from pixielib.datasets import detectors
 
 import numpy as np
 
+from visualization_msgs.msg import Marker, MarkerArray
+from sensor_msgs.msg import PointCloud2
+from sensor_msgs.point_cloud2 import create_cloud_xyz32
+from std_msgs.msg import Header
+
 class ImageProcessor:
     def __init__(self):
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/usb_cam/image_raw", Image, self.callback)
         self.image_pub = rospy.Publisher("/output_image_topic", Image, queue_size=10)
+        self.vertex_pub = rospy.Publisher('vertex_marker_array', PointCloud2, queue_size=10)
 
         # PIXIE 및 기타 관련 설정
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -112,11 +118,22 @@ class ImageProcessor:
         codedict = param_dict['head']
         opdict = self.pixie.decode(codedict, param_type='head')
         # opdict['albedo'] = self.visualizer.tex_flame2smplx(opdict['albedo'])
-
+        # print(opdict)
         # 결과 시각화
+        # opdict에서 정점 데이터 추출
+        
         visdict = self.visualizer.render_results(opdict, image_tensor, overlay=True)
+        vertices = visdict['flame_vertices'].cpu().numpy()
+        self.publish_vertices_as_pointcloud2(vertices, self.vertex_pub)
+
+        normal_image = visdict["normal_images"][0]
+        uvcoords_image = visdict["uvcoords_images"][0]
+        print(normal_image.shape)
         # 렌더링 결과를 OpenCV 이미지로 변환
         rendered_image = util.tensor2image(visdict["shape_images"][0])
+        # rendered_image = util.tensor2image(normal_image)
+        # rendered_image = util.tensor2image(uvcoords_image)
+
         h, w, _ = image.shape
 
         # 렌더링된 이미지를 원본 이미지의 크기에 맞게 변환
@@ -129,9 +146,52 @@ class ImageProcessor:
         end = time.time()
         elapsed = end - start
         # print(elapsed)
-
+        
         return image
 
+    def publish_vertices_as_marker_array(self, vertices, publisher, frame_id="map"):
+        """
+        opdict에서 추출한 정점 데이터를 MarkerArray 메시지로 변환하여 ROS 토픽으로 발행합니다.
+
+        Args:
+        - vertices (np.array): 정점 데이터 배열, shape (N, 3)
+        - publisher (rospy.Publisher): ROS MarkerArray 메시지를 발행할 퍼블리셔
+        - frame_id (str): 마커 배열의 프레임 ID
+        """
+        marker_array = MarkerArray()
+        for i, vertex in enumerate(vertices):
+            marker = Marker()
+            marker.header.frame_id = frame_id
+            marker.id = i
+            marker.type = Marker.SPHERE
+            marker.action = Marker.ADD
+            marker.pose.position.x = vertex[0]
+            marker.pose.position.y = vertex[1]
+            marker.pose.position.z = vertex[2]
+            marker.scale.x = 0.01
+            marker.scale.y = 0.01
+            marker.scale.z = 0.01
+            marker.color.a = 1.0
+            marker.color.r = 1.0
+            marker.color.g = 0.0
+            marker.color.b = 0.0
+            # marker.lifetime = rospy.Duration()
+            marker_array.markers.append(marker)
+        publisher.publish(marker_array)
+    def publish_vertices_as_pointcloud2(self, vertices, publisher, frame_id="map"):
+        """
+        opdict에서 추출한 정점 데이터를 PointCloud2 메시지로 변환하여 ROS 토픽으로 발행합니다.
+
+        Args:
+        - vertices (np.array): 정점 데이터 배열, shape (N, 3)
+        - publisher (rospy.Publisher): ROS PointCloud2 메시지를 발행할 퍼블리셔
+        - frame_id (str): 포인트 클라우드의 프레임 ID
+        """
+        header = Header(frame_id=frame_id)
+        header.stamp = rospy.Time.now()
+        pointcloud = create_cloud_xyz32(header, vertices)
+
+        publisher.publish(pointcloud)
 
 def main():
     rospy.init_node('image_processor', anonymous=True)

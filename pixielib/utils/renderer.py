@@ -387,7 +387,7 @@ class SRenderY(nn.Module):
         
         if return_grid:
             uvcoords_images = rendering[:, 12:15, :, :]; grid = (uvcoords_images).permute(0, 2, 3, 1)[:, :, :, :2]
-            return shape_images, normal_images, grid
+            return shape_images, normal_images, grid, uvcoords_images
         else:
             return shape_images
     
@@ -441,4 +441,4 @@ class SRenderY(nn.Module):
         batch_size = vertices.shape[0]
         face_vertices = util.face_vertices(vertices, self.faces.expand(batch_size, -1, -1))
         uv_vertices = self.uv_rasterizer(self.uvcoords.expand(batch_size, -1, -1), self.uvfaces.expand(batch_size, -1, -1), face_vertices)[:, :3]
-        return uv_vertices        
+        return uv_vertices
