@@ -14,12 +14,15 @@ from pixielib.datasets.body_datasets import TestData
 from pixielib.utils import util
 from pixielib.utils.config import cfg as pixie_cfg
 from pixielib.utils.tensor_cropper import transform_points
+
 def force_cudnn_initialization():
     s = 32
     dev = torch.device('cuda')
     torch.nn.functional.conv2d(torch.zeros(s, s, s, s, device=dev), torch.zeros(s, s, s, s, device=dev))
+
 def main(args):
     force_cudnn_initialization()
+
     savefolder = args.savefolder
     device = args.device
     os.makedirs(savefolder, exist_ok=True)
@@ -90,12 +93,16 @@ def main(args):
             if args.showWeight is False:
                 moderator_weight = None 
             visdict = visualizer.render_results(opdict, data['body']['image_hd'], overlay=True, moderator_weight=moderator_weight, use_deca=use_deca)
-            # show cropped parts 
+            # show cropped parts
             if args.showParts:
                 visdict['head'] = data['body']['head_image']
                 visdict['left_hand'] = data['body']['left_hand_image'] # should be flipped
                 visdict['right_hand'] = data['body']['right_hand_image']
             cv2.imwrite(os.path.join(savefolder, f'{name}_vis.jpg'), visualizer.visualize_grid(visdict, size=args.render_size))
+            print(visualizer.visualize_grid(visdict, size=args.render_size).shape)
+            cv2.imshow("image", visualizer.visualize_grid(visdict, size=args.render_size))
+            if cv2.waitKey(0) & 0xFF:
+                continue
             # print(os.path.join(savefolder, f'{name}_vis.jpg'))
             # import ipdb; ipdb.set_trace()
             # exit()

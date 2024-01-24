@@ -12,8 +12,14 @@ from pixielib.visualizer import Visualizer
 from pixielib.datasets.face_datasets import TestData
 from pixielib.utils import util
 from pixielib.utils.config import cfg as pixie_cfg
+def force_cudnn_initialization():
+    s = 32
+    dev = torch.device('cuda')
+    torch.nn.functional.conv2d(torch.zeros(s, s, s, s, device=dev), torch.zeros(s, s, s, s, device=dev))
 
 def main(args):
+    force_cudnn_initialization()
+
     savefolder = args.savefolder
     device = args.device
     os.makedirs(savefolder, exist_ok=True)
@@ -125,7 +131,7 @@ if __name__ == '__main__':
                         help='whether to save outputs as .obj, \
                             Note that saving objs could be slow' )
     parser.add_argument('--saveParam', default=False, type=lambda x: x.lower() in ['true', '1'],
-                        help='whether to save parameters as pkl file' )
+                        help='whethepr to save parameters as pkl file' )
     parser.add_argument('--savePred', default=False, type=lambda x: x.lower() in ['true', '1'],
                         help='whether to save smplx prediction as pkl file' )
     parser.add_argument('--saveImages', default=False, type=lambda x: x.lower() in ['true', '1'],
