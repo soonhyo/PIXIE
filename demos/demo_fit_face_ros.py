@@ -31,7 +31,7 @@ class ImageProcessor:
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/usb_cam/image_raw", Image, self.callback)
         self.image_pub = rospy.Publisher("/output_image_topic", Image, queue_size=10)
-        self.vertex_pub = rospy.Publisher('vertex_marker_array', PointCloud2, queue_size=10)
+        self.vertex_pub = rospy.Publisher('/vertex_marker_array', PointCloud2, queue_size=10)
 
         # PIXIE 및 기타 관련 설정
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -88,7 +88,7 @@ class ImageProcessor:
         old_size, center = self.bbox2point(left, right, top, bottom, type='kpt68')
 
 
-        size = int(old_size * 2.0)  # self.scale 대신 1.1을 임시로 사용
+        size = int(old_size * 1.6)  # self.scale 대신 1.1을 임시로 사용
         src_pts = np.array([[center[0]-size/2, center[1]-size/2], [center[0] - size/2, center[1]+size/2], [center[0]+size/2, center[1]-size/2]])
 
         crop_size = 224  # 예시로 224를 사용
