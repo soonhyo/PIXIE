@@ -128,7 +128,7 @@ class ImageProcessor:
 
         normal_image = visdict["normal_images"][0]
         uvcoords_image = visdict["uvcoords_images"][0]
-        print(normal_image.shape)
+
         # 렌더링 결과를 OpenCV 이미지로 변환
         rendered_image = util.tensor2image(visdict["shape_images"][0])
         # rendered_image = util.tensor2image(normal_image)
@@ -178,6 +178,7 @@ class ImageProcessor:
             # marker.lifetime = rospy.Duration()
             marker_array.markers.append(marker)
         publisher.publish(marker_array)
+
     def publish_vertices_as_pointcloud2(self, vertices, publisher, frame_id="map"):
         """
         opdict에서 추출한 정점 데이터를 PointCloud2 메시지로 변환하여 ROS 토픽으로 발행합니다.

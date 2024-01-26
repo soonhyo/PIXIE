@@ -51,6 +51,7 @@ cfg.model.tex_type = 'FLAME' # BFM, FLAME, albedoMM
 cfg.model.uvtex_type = 'SMPLX' # FLAME or SMPLX
 cfg.model.use_tex = False # whether to use flame texture model
 cfg.model.flame_tex_path = '/ps/scratch/yfeng/Data/FLAME/texture/FLAME_texture.npz'
+cfg.model.scalp_indice_path = os.path.join(cfg.pixie_dir, 'data', 'selected_vertices.npy')
 
 # pose
 cfg.model.n_global_pose = 3*2

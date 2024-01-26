@@ -51,6 +51,7 @@ class Visualizer(object):
             self.bg = background
         else:
             self.bg = torch.ones([1,1,self.render_size, self.render_size], device=self.device, dtype=torch.float32)
+        self.scalp_indice = np.load(self.cfg.model.scalp_indice_path)
 
     def _setup_renderer(self):
         ## setup raterizer
@@ -181,7 +182,7 @@ class Visualizer(object):
             'uvcoords_images': uvcoords_images,
             'flame_vertices':opdict['vertices'][0][self.part_idx['head']],
         }
-
+        print(self.scalp_indice)
         # if detail displacement map is available after running deca
         if 'displacement_map' in opdict.keys():
             uv_detail_normals = self.displacement2normal(opdict['displacement_map'], opdict['vertices'])

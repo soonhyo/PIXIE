@@ -178,13 +178,14 @@ class MP(object):
 
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
         out = self.detector.detect(mp_image)
-        bbox = out.detections[0].bounding_box
+
         # start_point = bbox.origin_x, bbox.origin_y
         # end_point = bbox.origin_x + bbox.width, bbox.origin_y + bbox.height
 
         if out is None:
             return [0]
         else:
+            bbox = out.detections[0].bounding_box
             left = bbox.origin_x
             right = left + bbox.height
             top = bbox.origin_y
