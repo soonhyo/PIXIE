@@ -29,7 +29,7 @@ from std_msgs.msg import Header
 class ImageProcessor:
     def __init__(self):
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/usb_cam/image_raw", Image, self.callback)
+        self.image_sub = rospy.Subscriber("/camera/color/image_rect_color", Image, self.callback)
         self.image_pub = rospy.Publisher("/output_image_topic", Image, queue_size=10)
         self.vertex_pub = rospy.Publisher('/vertex_marker_array', PointCloud2, queue_size=10)
 
@@ -123,7 +123,7 @@ class ImageProcessor:
         # opdict에서 정점 데이터 추출
         
         visdict = self.visualizer.render_results(opdict, image_tensor, overlay=True)
-        vertices = visdict['flame_vertices'].cpu().numpy()
+        vertices = visdict['scalp_vertices'].cpu().numpy()
         self.publish_vertices_as_pointcloud2(vertices, self.vertex_pub)
 
         normal_image = visdict["normal_images"][0]

@@ -174,15 +174,18 @@ class Visualizer(object):
 
         # render geometry
         _, _, h, w = input_images.shape
-        shape_images, normal_images, grid, uvcoords_images = self.render.render_shape(opdict['vertices'], opdict['transformed_vertices'], background=bg, return_grid=True, h=h, w=w)
+        shape_images, normal_images, grid, uvcoords_images, visible_vertex_indices, triangle_buffer = self.render.render_shape(opdict['vertices'], opdict['transformed_vertices'], background=bg, return_grid=True, h=h, w=w)
         visdict={
             'inputs': input_images,
             'shape_images': shape_images,
             'normal_images': normal_images,
             'uvcoords_images': uvcoords_images,
-            'flame_vertices':opdict['vertices'][0][self.part_idx['head']],
+            'scalp_vertices': opdict['vertices'][0][self.scalp_indice],
+            'scalp_strat_points': triangle_buffer,
         }
-        print(self.scalp_indice)
+        
+        print(visible_vertex_indices.shape)
+        # 'flame_vertices':opdict['vertices'][0][self.part_idx['head']],
         # if detail displacement map is available after running deca
         if 'displacement_map' in opdict.keys():
             uv_detail_normals = self.displacement2normal(opdict['displacement_map'], opdict['vertices'])

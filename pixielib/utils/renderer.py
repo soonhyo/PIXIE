@@ -11,6 +11,42 @@ from skimage.io import imread
 import imageio
 
 from . import util
+def extract_visible_vertex_indices(faces, triangle_buffer):
+    # 화면에 보이는 삼각형의 인덱스를 얻습니다.
+    visible_triangles = triangle_buffer.unique()
+    visible_triangles = visible_triangles[visible_triangles >= 0]
+    faces = faces[0]
+
+    # faces의 최대 인덱스를 계산합니다.
+    max_index = faces.size(0) - 1
+
+    # 화면에 보이는 정점 인덱스의 집합을 초기화합니다.
+    visible_vertex_indices = set()
+
+    # 화면에 보이는 각 삼각형에 대해 반복합니다.
+    for tri_idx in visible_triangles:
+        if tri_idx <= max_index:
+            # 화면에 보이는 삼각형을 구성하는 정점 인덱스를 얻습니다.
+            vert_indices = faces[tri_idx]
+
+            # 정점 인덱스를 화면에 보이는 정점 인덱스의 집합에 추가합니다.
+            visible_vertex_indices.update(vert_indices.tolist())
+
+    # 화면에 보이는 정점 인덱스의 리스트를 반환합니다.
+    return list(visible_vertex_indices)
+
+def extract_vertex_indices(faces, triangle_buffer):
+    # faces 텐서의 첫 번째 차원을 제거하여 삼각형 인덱스를 얻습니다.
+    faces = faces.squeeze(0)
+
+    # triangle_buffer에서 -1 값을 제외한 모든 고유 삼각형 인덱스를 얻습니다.
+    visible_triangles = triangle_buffer[triangle_buffer >= 0]
+
+    # visible_triangles 텐서의 각 원소를 faces 인덱스로 사용하여 정점 인덱스를 추출합니다.
+    visible_vertex_indices = faces[visible_triangles]
+
+    return visible_vertex_indices
+
 
 def set_rasterizer(type = 'pytorch3d'):
     if type == 'pytorch3d':
@@ -50,6 +86,8 @@ class StandardRasterizer(nn.Module):
         if width is None:
             width = height
         self.h = h = height; self.w = w = width
+        self.visible_vertex_indices = None
+        self.triangle_buffer = None
 
     def forward(self, vertices, faces, attributes=None, h=None, w=None):
         device = vertices.device
@@ -68,7 +106,9 @@ class StandardRasterizer(nn.Module):
         vertices[...,1] = vertices[..., 1]*h/2 + h/2 
         vertices[...,2] = vertices[..., 2]*w/2
         f_vs = util.face_vertices(vertices, faces)
-
+        print("face:", faces.shape)
+        print("f_vs:", f_vs)
+        print(faces)
         standard_rasterize(f_vs, depth_buffer, triangle_buffer, baryw_buffer, h, w)
         pix_to_face = triangle_buffer[:,:,:,None].long()
         bary_coords = baryw_buffer[:,:,:,None,:]
@@ -84,7 +124,13 @@ class StandardRasterizer(nn.Module):
         pixel_vals = (bary_coords[..., None] * pixel_face_vals).sum(dim=-2)
         pixel_vals[mask] = 0  # Replace masked values in output.
         pixel_vals = pixel_vals[:,:,:,0].permute(0,3,1,2)
+        # print("pix:", pixel_vals.shape)
+        # print("f:", pixel_face_vals)
         pixel_vals = torch.cat([pixel_vals, vismask[:,:,:,0][:,None,:,:]], dim=1)
+
+        self.visible_vertex_indices = extract_vertex_indices(faces, triangle_buffer)
+        self.triangle_buffer = triangle_buffer
+
         return pixel_vals
 
 class Pytorch3dRasterizer(nn.Module):
@@ -355,6 +401,8 @@ class SRenderY(nn.Module):
                         -1)
         # rasterize
         rendering = self.rasterizer(transformed_vertices, self.faces.expand(batch_size, -1, -1), attributes, h, w)
+        visible_vertex_indices = self.rasterizer.visible_vertex_indices
+        triangle_buffer = self.rasterizer.triangle_buffer
 
         ####
         alpha_images = rendering[:, -1, :, :][:, None, :, :].detach()
@@ -380,14 +428,14 @@ class SRenderY(nn.Module):
         shaded_images = albedo_images*shading_images
 
         if background is None:
-            shape_images = shaded_images*alpha_images + torch.ones_like(shaded_images).to(vertices.device)*(1-alpha_images)
+           shape_images = shaded_images*alpha_images + torch.ones_like(shaded_images).to(vertices.device)*(1-alpha_images)
         else:
             # background = F.interpolate(background, [self.image_size, self.image_size])
             shape_images = shaded_images*alpha_images + background.contiguous()*(1-alpha_images)
         
         if return_grid:
             uvcoords_images = rendering[:, 12:15, :, :]; grid = (uvcoords_images).permute(0, 2, 3, 1)[:, :, :, :2]
-            return shape_images, normal_images, grid, uvcoords_images
+            return shape_images, normal_images, grid, uvcoords_images, visible_vertex_indices, triangle_buffer
         else:
             return shape_images
     
